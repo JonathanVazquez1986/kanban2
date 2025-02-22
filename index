@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero Kanban</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" defer></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-5 text-center">Tablero Kanban</h1>
+        <button onclick="openModal()" class="bg-blue-500 text-white px-4 py-2 rounded">+ Nuevo Proyecto</button>
+        <div id="kanban-board" class="grid grid-cols-3 gap-4 mt-5">
+            <div class="kanban-column" id="pending">
+                <h2 class="text-xl font-semibold text-center mb-3">Pendientes</h2>
+                <div class="kanban-list bg-white p-4 rounded shadow min-h-[200px]"></div>
+            </div>
+            <div class="kanban-column" id="in-progress">
+                <h2 class="text-xl font-semibold text-center mb-3">En Proceso</h2>
+                <div class="kanban-list bg-white p-4 rounded shadow min-h-[200px]"></div>
+            </div>
+            <div class="kanban-column" id="completed">
+                <h2 class="text-xl font-semibold text-center mb-3">Completado</h2>
+                <div class="kanban-list bg-white p-4 rounded shadow min-h-[200px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded w-96">
+            <h2 class="text-xl font-semibold mb-4">Nueva Tarea</h2>
+            <input type="text" id="taskTitle" placeholder="Título" class="w-full border p-2 rounded mb-3">
+            <select id="taskColumn" class="w-full border p-2 rounded mb-3">
+                <option value="pending">Pendientes</option>
+                <option value="in-progress">En Proceso</option>
+                <option value="completed">Completado</option>
+            </select>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeModal()" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+                <button onclick="addTask()" class="bg-blue-500 text-white px-4 py-2 rounded">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            loadTasks();
+            setTimeout(initDragAndDrop, 500);
+        });
+
+        function openModal() {
+            document.getElementById("modal").classList.remove("hidden");
+        }
+        function closeModal() {
+            document.getElementById("modal").classList.add("hidden");
+        }
+
+        function addTask() {
+            const title = document.getElementById("taskTitle").value;
+            const column = document.getElementById("taskColumn").value;
+            if (!title.trim()) return;
+            
+            const task = document.createElement("div");
+            task.classList.add("task", "bg-blue-200", "p-2", "rounded", "shadow", "mb-2", "cursor-pointer");
+            task.textContent = title;
+            task.setAttribute("draggable", "true");
+            task.onclick = () => editTask(task);
+            document.getElementById(column).querySelector(".kanban-list").appendChild(task);
+            saveTasks();
+            closeModal();
+        }
+
+        function editTask(task) {
+            const newTitle = prompt("Editar tarea", task.textContent);
+            if (newTitle) {
+                task.textContent = newTitle;
+                saveTasks();
+            }
+        }
+
+        function saveTasks() {
+            const tasks = {};
+            document.querySelectorAll(".kanban-column").forEach(col => {
+                const id = col.id;
+                tasks[id] = [];
+                col.querySelectorAll(".task").forEach(task => {
+                    tasks[id].push(task.textContent);
+                });
+            });
+            localStorage.setItem("kanbanTasks", JSON.stringify(tasks));
+        }
+
+        function loadTasks() {
+            const tasks = JSON.parse(localStorage.getItem("kanbanTasks")) || {};
+            Object.keys(tasks).forEach(column => {
+                const container = document.getElementById(column).querySelector(".kanban-list");
+                tasks[column].forEach(title => {
+                    const task = document.createElement("div");
+                    task.classList.add("task", "bg-blue-200", "p-2", "rounded", "shadow", "mb-2", "cursor-pointer");
+                    task.textContent = title;
+                    task.setAttribute("draggable", "true");
+                    task.onclick = () => editTask(task);
+                    container.appendChild(task);
+                });
+            });
+            setTimeout(initDragAndDrop, 500);
+        }
+
+        function initDragAndDrop() {
+            document.querySelectorAll(".kanban-list").forEach(list => {
+                new Sortable(list, {
+                    group: "kanban",
+                    animation: 150,
+                    onEnd: saveTasks
+                });
+            });
+        }
+    </script>
+</body>
+</html>
